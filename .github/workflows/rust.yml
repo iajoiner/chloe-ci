@@ -27,23 +27,32 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '**/**.rs'
+      - '**/Cargo.toml'
   pull_request:
+    paths:
+      - '**/**.rs'
+      - '**/Cargo.toml'
 
 jobs:
-
   # Check workspace wide compile and test with default features for
-  # mac
-  macos:
-    name: Test on Mac
-    runs-on: macos-latest
+  # mac, windows and ubuntu
+  windows-macos-and-ubuntu:
+    name: Test on ${{ matrix.os }} Rust ${{ matrix.rust }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        rust: [stable, beta, nightly]
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
       - name: Setup Rust toolchain
         run: |
-          rustup toolchain install stable --no-self-update
-          rustup default stable
+          rustup toolchain install ${{ matrix.rust }}
+          rustup default ${{ matrix.rust }}
       - name: Run tests
         shell: bash
         working-directory: ./rust
@@ -51,29 +60,6 @@ jobs:
           # do not produce debug symbols to keep memory usage down
           export RUSTFLAGS="-C debuginfo=0"
           cargo test
-
-
-  # Check workspace wide compile and test with default features for
-  # windows
-  windows:
-    name: Test on Windows
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - name: Setup Rust toolchain
-        run: |
-          rustup toolchain install stable --no-self-update
-          rustup default stable
-      - name: Run tests
-        shell: bash
-        working-directory: ./rust
-        run: |
-          # do not produce debug symbols to keep memory usage down
-          export RUSTFLAGS="-C debuginfo=0"
-          cargo test
-
 
   # Run cargo fmt for all crates
   rust-lint:
@@ -106,3 +92,19 @@ jobs:
       - name: Run
         working-directory: ./rust
         run: find . -mindepth 2 -name 'Cargo.toml' -exec cargo tomlfmt -k -p {} \;
+
+  # Run cargo clippy for all crates
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    container:
+      image: amd64/rust
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Rust toolchain
+        uses: ./.github/actions/setup-builder
+      - name: Setup tomlfmt
+        run: rustup component add clippy
+      - name: Run
+        working-directory: ./rust
+        run: cargo clippy --all-targets --workspace -- -D warnings
