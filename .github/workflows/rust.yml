@@ -46,6 +46,7 @@ jobs:
           rustup default stable
       - name: Run tests
         shell: bash
+        working-directory: ./rust
         run: |
           # do not produce debug symbols to keep memory usage down
           export RUSTFLAGS="-C debuginfo=0"
@@ -67,6 +68,7 @@ jobs:
           rustup default stable
       - name: Run tests
         shell: bash
+        working-directory: ./rust
         run: |
           # do not produce debug symbols to keep memory usage down
           export RUSTFLAGS="-C debuginfo=0"
@@ -74,7 +76,7 @@ jobs:
 
 
   # Run cargo fmt for all crates
-  lint:
+  rust-lint:
     name: Lint (cargo fmt)
     runs-on: ubuntu-latest
     container:
@@ -86,4 +88,21 @@ jobs:
       - name: Setup rustfmt
         run: rustup component add rustfmt
       - name: Run
+        working-directory: ./rust
         run: cargo fmt --all -- --check
+  
+  # Run cargo tomlfmt for all crates
+  cargo-toml-lint:
+    name: Lint (cargo tomlfmt)
+    runs-on: ubuntu-latest
+    container:
+      image: amd64/rust
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Rust toolchain
+        uses: ./.github/actions/setup-builder
+      - name: Setup tomlfmt
+        run: cargo install cargo-tomlfmt
+      - name: Run
+        working-directory: ./rust
+        run: find . -mindepth 2 -name 'Cargo.toml' -exec cargo tomlfmt -k -p {} \;
