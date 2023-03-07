@@ -45,6 +45,7 @@ runs:
         restore-keys: cargo-cache3-
     - name: Generate lockfile
       shell: bash
+      working-directory: ./rust
       run: cargo fetch
     - name: Install Build Dependencies
       shell: bash
